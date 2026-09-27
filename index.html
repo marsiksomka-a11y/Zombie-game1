@@ -3,504 +3,947 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<title>Zombie Open World</title>
+<title>Zombie World</title>
 <style>
-  *{margin:0;padding:0;box-sizing:border-box;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
-  html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:Arial,sans-serif}
-  canvas{display:block;position:fixed;inset:0}
-
-  #ui{position:fixed;inset:0;pointer-events:none;z-index:10}
-
-  #cross{position:absolute;top:50%;left:50%;width:22px;height:22px;transform:translate(-50%,-50%)}
-  #cross::before,#cross::after{content:"";position:absolute;background:#fff;box-shadow:0 0 3px #000}
-  #cross::before{left:50%;top:0;width:2px;height:100%;transform:translateX(-50%)}
-  #cross::after{top:50%;left:0;height:2px;width:100%;transform:translateY(-50%)}
-
-  #hud{position:absolute;top:10px;left:12px;color:#fff;font-size:14px;text-shadow:0 0 4px #000;line-height:1.4}
-  #hud b{font-weight:bold}
-  .bar{width:120px;height:12px;background:rgba(0,0,0,.5);border:1px solid #fff;border-radius:3px;margin-top:2px;overflow:hidden}
-  .bar i{display:block;height:100%;background:#e33;transition:width .15s}
-
-  .stick{position:absolute;bottom:25px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.28);pointer-events:auto}
-  #stickL{left:20px}
-  #stickR{right:20px}
-  .stick .knob{position:absolute;top:50%;left:50%;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.4);transform:translate(-50%,-50%)}
-
-  .btn{position:absolute;border-radius:50%;color:#fff;font-size:10px;font-weight:bold;display:flex;align-items:center;justify-content:center;text-align:center;border:2px solid #fff;pointer-events:auto;text-shadow:0 0 3px #000}
-  #btnFire {right:170px;bottom:100px;width:70px;height:70px;background:rgba(220,40,40,.75)}
-  #btnJump {right:170px;bottom:20px;width:70px;height:70px;background:rgba(40,110,220,.75)}
-  #btnReload{right:250px;bottom:60px;width:56px;height:56px;background:rgba(200,160,40,.7)}
-  #btnEnter{right:60px;bottom:170px;width:70px;height:70px;background:rgba(60,180,80,.8);display:none}
-  #btnSwap {right:250px;bottom:130px;width:56px;height:56px;background:rgba(120,60,200,.7)}
-  #btnShop {right:60px;bottom:330px;width:80px;height:80px;background:rgba(255,215,0,.85);display:none;font-size:12px}
-  #btnTune {right:60px;bottom:250px;width:80px;height:80px;background:rgba(180,140,40,.85);font-size:11px}
-
-  #weaponBar{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:6px;pointer-events:auto}
-  .wslot{width:52px;height:52px;border-radius:8px;background:rgba(0,0,0,.5);border:2px solid #666;color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;text-align:center;flex-direction:column}
-  .wslot.active{border-color:#ffcc33;background:rgba(255,200,50,.25)}
-
-  #tuneMenu{position:absolute;inset:0;background:rgba(0,0,0,.82);color:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:auto;padding:20px;z-index:20}
-  #tuneMenu h2{margin-bottom:20px;font-size:22px}
-  .tuneRow{display:flex;align-items:center;gap:10px;margin:10px 0;width:100%;max-width:340px}
-  .tuneRow label{flex:1;font-size:14px}
-  .tuneRow button{width:40px;height:40px;border-radius:8px;border:none;background:#3498db;color:#fff;font-size:18px;font-weight:bold}
-  .tuneRow span{width:50px;text-align:center;font-size:14px;font-weight:bold;color:#ffcc33}
-  #tuneClose{margin-top:20px;padding:12px 30px;background:#e74c3c;border:none;border-radius:8px;color:#fff;font-size:16px;font-weight:bold}
-  #tuneInfo{position:absolute;top:20px;font-size:13px;color:#ffcc33;text-align:center;width:80%}
-
-  #shopMenu{position:absolute;inset:0;background:rgba(10,15,20,.95);color:#fff;display:none;flex-direction:column;pointer-events:auto;padding:20px;z-index:20;overflow-y:auto}
-  #shopMenu h2{text-align:center;color:#ffdd44;margin-bottom:6px}
-  #shopItems{display:flex;flex-direction:column;gap:8px;max-width:480px;margin:0 auto;width:100%}
-  #shopClose{margin:20px auto;padding:12px 30px;background:#e74c3c;border:none;border-radius:8px;color:#fff;font-size:16px;font-weight:bold}
-
-  #note{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.85);color:#fff;padding:14px 24px;border-radius:10px;font-size:15px;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;max-width:80%}
-
-  #load{position:fixed;inset:0;background:#0b0b0b;color:#eee;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:18px;z-index:100}
-  #load small{margin-top:10px;color:#888;font-size:12px}
-
-  #start{position:fixed;inset:0;background:radial-gradient(circle,#2a1a1a,#000);color:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:99;text-align:center;padding:20px}
-  #start h1{font-size:28px;color:#e33;margin-bottom:8px;text-shadow:0 0 12px #e33}
-  #start p{font-size:13px;color:#aaa;margin-bottom:24px;max-width:300px;line-height:1.6}
-  #start button{padding:16px 44px;background:#c0392b;border:none;border-radius:10px;color:#fff;font-size:18px;font-weight:bold;box-shadow:0 0 20px rgba(192,57,43,.6)}
+*{margin:0;padding:0;box-sizing:border-box;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:Arial}
+canvas{display:block;position:fixed;inset:0}
+#ui{position:fixed;inset:0;pointer-events:none;z-index:10}
+#cross{position:absolute;top:50%;left:50%;width:20px;height:20px;transform:translate(-50%,-50%)}
+#cross:before,#cross:after{content:"";position:absolute;background:#fff}
+#cross:before{left:50%;top:0;width:2px;height:100%;transform:translateX(-50%)}
+#cross:after{top:50%;left:0;height:2px;width:100%;transform:translateY(-50%)}
+#hud{position:absolute;top:10px;left:12px;color:#fff;font-size:13px;text-shadow:0 0 4px #000;line-height:1.4}
+.bar{width:110px;height:10px;background:rgba(0,0,0,.5);border:1px solid #fff;border-radius:3px;margin-top:2px;overflow:hidden}
+.bar i{display:block;height:100%;background:#e33;transition:width .15s}
+.stick{position:absolute;bottom:20px;width:110px;height:110px;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.28);pointer-events:auto}
+#stickL{left:15px}#stickR{right:15px}
+.stick .knob{position:absolute;top:50%;left:50%;width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.4);transform:translate(-50%,-50%)}
+.btn{position:absolute;border-radius:50%;color:#fff;font-size:10px;font-weight:bold;display:flex;align-items:center;justify-content:center;text-align:center;border:2px solid #fff;pointer-events:auto;text-shadow:0 0 3px #000}
+#btnFire{right:155px;bottom:95px;width:65px;height:65px;background:rgba(220,40,40,.8)}
+#btnJump{right:155px;bottom:20px;width:65px;height:65px;background:rgba(40,110,220,.8)}
+#btnReload{right:230px;bottom:60px;width:52px;height:52px;background:rgba(200,160,40,.75);font-size:9px}
+#btnEnter{right:55px;bottom:160px;width:65px;height:65px;background:rgba(60,180,80,.85);display:none}
+#btnShop{right:55px;bottom:300px;width:70px;height:70px;background:rgba(255,215,0,.85);display:none;font-size:11px}
+#btnTune{right:55px;bottom:230px;width:70px;height:70px;background:rgba(180,140,40,.85);font-size:10px}
+#weaponBar{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:flex;gap:5px;pointer-events:auto}
+.wslot{width:46px;height:46px;border-radius:8px;background:rgba(0,0,0,.55);border:2px solid #666;color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;text-align:center;flex-direction:column}
+.wslot.active{border-color:#ffcc33;background:rgba(255,200,50,.3)}
+#tuneMenu{position:absolute;inset:0;background:rgba(0,0,0,.92);color:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:auto;padding:20px;z-index:20}
+.tuneRow{display:flex;align-items:center;gap:10px;margin:10px 0;width:100%;max-width:320px}
+.tuneRow label{flex:1;font-size:14px}
+.tuneRow button{width:40px;height:40px;border-radius:8px;border:none;background:#3498db;color:#fff;font-size:18px;font-weight:bold}
+.tuneRow span{width:50px;text-align:center;font-weight:bold;color:#ffcc33}
+#tuneClose{margin-top:20px;padding:12px 30px;background:#e74c3c;border:none;border-radius:8px;color:#fff;font-size:16px;font-weight:bold}
+#shopMenu{position:absolute;inset:0;background:rgba(10,15,20,.97);color:#fff;display:none;flex-direction:column;pointer-events:auto;padding:15px;z-index:20;overflow-y:auto}
+#shopMenu h2{text-align:center;color:#ffdd44;margin-bottom:8px;font-size:18px}
+#shopItems{display:flex;flex-direction:column;gap:6px;max-width:480px;margin:0 auto;width:100%}
+.shopRow{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);padding:9px;border-radius:8px;border:1px solid rgba(255,255,255,.15)}
+.shopRow .nm{flex:1;font-size:12px}
+.shopRow .nm span{color:#44ff44;font-size:11px}
+.shopRow button{padding:8px 12px;border:none;border-radius:6px;background:#27ae60;color:#fff;font-weight:bold;font-size:11px}
+#shopClose{margin:15px auto;padding:12px 30px;background:#e74c3c;border:none;border-radius:8px;color:#fff;font-size:15px;font-weight:bold}
+#note{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.85);color:#fff;padding:12px 22px;border-radius:10px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;max-width:80%}
+#load{position:fixed;inset:0;background:#0b0b0b;color:#eee;display:flex;align-items:center;justify-content:center;font-size:18px;z-index:100}
+#start{position:fixed;inset:0;background:radial-gradient(circle,#2a1a1a,#000);color:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:99;text-align:center;padding:20px}
+#start h1{font-size:26px;color:#e33;margin-bottom:8px;text-shadow:0 0 12px #e33}
+#start p{font-size:12px;color:#aaa;margin-bottom:20px;max-width:300px;line-height:1.6}
+#start button{padding:16px 44px;background:#c0392b;border:none;border-radius:10px;color:#fff;font-size:18px;font-weight:bold}
 </style>
 </head>
 <body>
-
-<div id="load">Загрузка...<small>Первый запуск 5-10 сек</small></div>
-
+<div id="load">Загрузка...</div>
 <div id="start">
   <h1>🧟 ZOMBIE WORLD</h1>
-  <p>Открытый мир • Машины • Оружие • Тюнинг • Магазины</p>
+  <p>Открытый мир • Машины • Оружие • Магазины</p>
   <button id="startBtn">ИГРАТЬ</button>
 </div>
-
 <div id="ui">
   <div id="cross"></div>
   <div id="hud">
     ❤️ <span id="hpTxt">100</span>
     <div class="bar"><i id="hpBar" style="width:100%"></i></div>
-    <div style="margin-top:6px">🔫 <b id="wName">Пистолет</b> | <span id="ammo">12/12</span></div>
-    <div>🧟 Убито: <b id="kills">0</b></div>
-    <div>💰 <b id="money">500</b></div>
-    <div id="modeHint" style="color:#7cf;font-size:12px;margin-top:4px"></div>
+    <div style="margin-top:5px">🔫 <b id="wName">Пистолет</b> | <span id="ammo">12/12</span></div>
+    <div>🧟 <b id="kills">0</b> | 💰 <b id="money">500</b></div>
+    <div id="modeHint" style="color:#7cf;font-size:11px;margin-top:3px"></div>
   </div>
-
   <div class="stick" id="stickL"><div class="knob"></div></div>
   <div class="stick" id="stickR"><div class="knob"></div></div>
-
   <div class="btn" id="btnFire">ОГОНЬ</div>
   <div class="btn" id="btnJump">ПРЫЖОК</div>
   <div class="btn" id="btnReload">ПЕРЕ-<br>ЗАРЯД</div>
-  <div class="btn" id="btnSwap">СМЕНА</div>
   <div class="btn" id="btnEnter">СЕСТЬ</div>
   <div class="btn" id="btnShop">🏪<br>МАГАЗИН</div>
   <div class="btn" id="btnTune">🔧<br>ТЮНИНГ</div>
-
   <div id="weaponBar"></div>
-
   <div id="tuneMenu">
-    <h2>🔧 ТЮНИНГ МАШИНЫ</h2>
-    <div id="tuneInfo">Изменяй характеристики. Дави зомби!</div>
+    <h2 style="color:#ffcc33;margin-bottom:15px">🔧 ТЮНИНГ</h2>
     <div class="tuneRow"><label>Скорость</label><button data-k="speed" data-d="-1">−</button><span id="tSpeed">5</span><button data-k="speed" data-d="1">+</button></div>
     <div class="tuneRow"><label>Броня</label><button data-k="armor" data-d="-1">−</button><span id="tArmor">3</span><button data-k="armor" data-d="1">+</button></div>
-    <div class="tuneRow"><label>Размер колёс</label><button data-k="wheel" data-d="-1">−</button><span id="tWheel">1</span><button data-k="wheel" data-d="1">+</button></div>
-    <div class="tuneRow"><label>Туррель</label><button data-k="turret" data-d="-1">−</button><span id="tTurret">0</span><button data-k="turret" data-d="1">+</button></div>
+    <div class="tuneRow"><label>Колёса</label><button data-k="wheel" data-d="-1">−</button><span id="tWheel">1</span><button data-k="wheel" data-d="1">+</button></div>
     <div class="tuneRow"><label>Цвет</label><button data-k="color" data-d="-1">◀</button><span id="tColor">1</span><button data-k="color" data-d="1">▶</button></div>
     <button id="tuneClose">ГОТОВО</button>
   </div>
-
   <div id="shopMenu">
     <h2>🏪 ТОРГОВЕЦ ВЫЖИВШИХ</h2>
-    <div style="text-align:center;color:#aaa;font-size:13px;margin-bottom:16px">💰 Деньги: <b id="shopMoney" style="color:#44ff44">0</b></div>
+    <div style="text-align:center;color:#aaa;font-size:12px;margin-bottom:12px">💰 <b id="shopMoney" style="color:#44ff44">0</b></div>
     <div id="shopItems"></div>
     <button id="shopClose">ЗАКРЫТЬ</button>
   </div>
-
   <div id="note"></div>
 </div>
-
 <script type="importmap">
 { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
 </script>
-
 <script type="module">
 import * as THREE from 'three';
 
-// ================== НАСТРОЙКИ ==================
-const CFG = {
-  worldSize: 200,
-  fogNear: 40,
-  fogFar: 130,
-  maxZombies: 25,
-  zombieSpawnDist: 35,
-};
-
-// ================== СЦЕНА ==================
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x8fa8b8);
-scene.fog = new THREE.Fog(0x8fa8b8, CFG.fogNear, CFG.fogFar);
-
+scene.fog = new THREE.Fog(0x8fa8b8, 40, 130);
 const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.1, 250);
 const renderer = new THREE.WebGLRenderer({ antialias:false, powerPreference:'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.25));
 renderer.setSize(innerWidth, innerHeight);
 renderer.shadowMap.enabled = false;
 document.body.appendChild(renderer.domElement);
-
 scene.add(new THREE.HemisphereLight(0xffffff, 0x334455, 1.0));
 const sun = new THREE.DirectionalLight(0xffffff, 0.55);
 sun.position.set(30, 60, 20);
 scene.add(sun);
 
-// ================== МИР ==================
-const ground = new THREE.Mesh(
-  new THREE.PlaneGeometry(CFG.worldSize*2, CFG.worldSize*2),
-  new THREE.MeshLambertMaterial({ color: 0x3f5a35 })
-);
+const WORLD = 200;
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(WORLD*2, WORLD*2),
+  new THREE.MeshLambertMaterial({ color: 0x3f5a35 }));
 ground.rotation.x = -Math.PI/2;
 scene.add(ground);
-
 const roadMat = new THREE.MeshLambertMaterial({ color: 0x2a2a2a });
-const road1 = new THREE.Mesh(new THREE.PlaneGeometry(CFG.worldSize*2, 12), roadMat);
-road1.rotation.x = -Math.PI/2; road1.position.y = 0.01; scene.add(road1);
-const road2 = new THREE.Mesh(new THREE.PlaneGeometry(12, CFG.worldSize*2), roadMat);
-road2.rotation.x = -Math.PI/2; road2.position.y = 0.01; scene.add(road2);
+const rd1 = new THREE.Mesh(new THREE.PlaneGeometry(WORLD*2, 12), roadMat);
+rd1.rotation.x = -Math.PI/2; rd1.position.y = 0.01; scene.add(rd1);
+const rd2 = new THREE.Mesh(new THREE.PlaneGeometry(12, WORLD*2), roadMat);
+rd2.rotation.x = -Math.PI/2; rd2.position.y = 0.01; scene.add(rd2);
 
 const buildings = [];
-const buildingColors = [0x8b7355, 0x6b6b7b, 0xa08060, 0x7a7a8a, 0x9b7f5f];
-for (let i = 0; i < 55; i++) {
-  const w = 5 + Math.random()*7;
-  const h = 6 + Math.random()*18;
-  const d = 5 + Math.random()*7;
-  const mat = new THREE.MeshLambertMaterial({ color: buildingColors[(Math.random()*buildingColors.length)|0] });
-  const b = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
+const bColors = [0x8b7355, 0x6b6b7b, 0xa08060, 0x7a7a8a, 0x9b7f5f];
+for (let i = 0; i < 45; i++) {
+  const w = 5 + Math.random()*7, h = 6 + Math.random()*16, d = 5 + Math.random()*7;
+  const b = new THREE.Mesh(new THREE.BoxGeometry(w,h,d),
+    new THREE.MeshLambertMaterial({ color: bColors[(Math.random()*bColors.length)|0] }));
   let x, z;
-  do {
-    x = (Math.random()-0.5) * CFG.worldSize * 1.7;
-    z = (Math.random()-0.5) * CFG.worldSize * 1.7;
-  } while (Math.abs(x) < 15 || Math.abs(z) < 15);
+  do { x = (Math.random()-0.5)*WORLD*1.7; z = (Math.random()-0.5)*WORLD*1.7; }
+  while (Math.abs(x) < 15 || Math.abs(z) < 15);
   b.position.set(x, h/2, z);
   scene.add(b);
   buildings.push({ mesh:b, box:new THREE.Box3().setFromObject(b) });
 }
-
-const treeTrunkMat = new THREE.MeshLambertMaterial({color:0x5b3a1f});
-const treeLeafMat = new THREE.MeshLambertMaterial({color:0x2d6a2a});
-for (let i = 0; i < 40; i++) {
+const trunkMat = new THREE.MeshLambertMaterial({color:0x5b3a1f});
+const leafMat = new THREE.MeshLambertMaterial({color:0x2d6a2a});
+for (let i = 0; i < 35; i++) {
   const g = new THREE.Group();
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.4,2,5), treeTrunkMat);
-  trunk.position.y = 1;
-  g.add(trunk);
-  const leaf = new THREE.Mesh(new THREE.ConeGeometry(2, 4, 6), treeLeafMat);
-  leaf.position.y = 4;
-  g.add(leaf);
+  const tr = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.4,2,5), trunkMat);
+  tr.position.y = 1; g.add(tr);
+  const lf = new THREE.Mesh(new THREE.ConeGeometry(2, 4, 6), leafMat);
+  lf.position.y = 4; g.add(lf);
   let x, z;
-  do {
-    x = (Math.random()-0.5) * CFG.worldSize * 1.7;
-    z = (Math.random()-0.5) * CFG.worldSize * 1.7;
-  } while (Math.abs(x) < 8 || Math.abs(z) < 8);
+  do { x = (Math.random()-0.5)*WORLD*1.7; z = (Math.random()-0.5)*WORLD*1.7; }
+  while (Math.abs(x) < 8 || Math.abs(z) < 8);
   g.position.set(x, 0, z);
   scene.add(g);
 }
 
-// ================== ОРУЖИЕ ==================
+// ОРУЖИЕ
 const WEAPONS = [
-  { name:'Пистолет',   dmg:25,  rate:0.30, mag:12,  reload:1.2, spread:0.015, auto:false, color:0x222222, range:60 },
-  { name:'ПП',         dmg:18,  rate:0.09, mag:30,  reload:1.8, spread:0.035, auto:true,  color:0x333333, range:55 },
-  { name:'Дробовик',   dmg:70,  rate:0.85, mag:6,   reload:2.2, spread:0.09,  auto:false, color:0x552211, range:25,  pellets:6 },
-  { name:'Винтовка',   dmg:90,  rate:1.0,  mag:5,   reload:2.6, spread:0.005, auto:false, color:0x443322, range:120 },
-  { name:'АК-74',      dmg:32,  rate:0.11, mag:30,  reload:2.0, spread:0.025, auto:true,  color:0x553322, range:80 },
-  { name:'Миниган',    dmg:22,  rate:0.05, mag:200, reload:4.0, spread:0.06,  auto:true,  color:0x111111, range:65 },
-  { name:'Рельсотрон', dmg:250, rate:1.5,  mag:3,   reload:3.5, spread:0.001, auto:false, color:0x00aaff, range:200 }
+  { name:'Пистолет',  dmg:25, rate:0.30, mag:12, reload:1.2, spread:0.015, auto:false, color:0x222222 },
+  { name:'ПП',        dmg:18, rate:0.09, mag:30, reload:1.8, spread:0.035, auto:true,  color:0x333333 },
+  { name:'Дробовик',  dmg:70, rate:0.85, mag:6,  reload:2.2, spread:0.09,  auto:false, color:0x552211, pellets:6 },
+  { name:'АК-74',     dmg:32, rate:0.11, mag:30, reload:2.0, spread:0.025, auto:true,  color:0x553322 },
+  { name:'Рельсотрон',dmg:250,rate:1.5,  mag:3,  reload:3.5, spread:0.001, auto:false, color:0x00aaff }
 ];
 let curWeapon = 0;
 let ammo = WEAPONS.map(w => w.mag);
-let reloading = false;
-let reloadEnd = 0;
+let reloading = false, reloadEnd = 0;
 
-// ================== ИГРОК ==================
 const player = {
-  pos: new THREE.Vector3(0, 1.7, 5),
-  vel: new THREE.Vector3(),
-  yaw: 0,
-  pitch: 0,
-  onGround: true,
-  hp: 100,
-  speed: 4.5,
-  runSpeed: 7.5,
-  jump: 7,
-  gravity: 20,
-  inCar: false,
-  kills: 0,
-  money: 500,
-  unlockedWeapons: [0],
-  armorItems: 0
+  pos: new THREE.Vector3(0, 1.7, 5), vel: new THREE.Vector3(),
+  yaw: 0, pitch: 0, onGround: true,
+  hp: 100, speed: 4.5, runSpeed: 7.5, jump: 7, gravity: 20,
+  inCar: false, kills: 0, money: 500,
+  unlockedWeapons: [0], armorItems: 0
 };
 
-// viewModel (руки с оружием)
 const viewModel = new THREE.Group();
 scene.add(viewModel);
-
-function buildViewModel(weaponIdx) {
+function buildViewModel(idx) {
   viewModel.clear();
-  const w = WEAPONS[weaponIdx];
+  const w = WEAPONS[idx];
   const armMat = new THREE.MeshLambertMaterial({color:0xd8a878});
   const arm = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.5), armMat);
-  arm.position.set(0.32, -0.28, -0.55);
-  viewModel.add(arm);
-
+  arm.position.set(0.32, -0.28, -0.55); viewModel.add(arm);
   const gunMat = new THREE.MeshLambertMaterial({color:w.color});
-  let gunLen = 0.6;
-  if (weaponIdx === 3) gunLen = 1.1;
-  if (weaponIdx === 2) gunLen = 0.9;
-  if (weaponIdx === 6) gunLen = 1.3;
-  const gun = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, gunLen), gunMat);
-  gun.position.set(0.32, -0.22, -0.85);
-  viewModel.add(gun);
+  const gunLen = idx===4 ? 1.3 : (idx===2 ? 0.9 : 0.6);
+  const gun = new THREE.Mesh(new THREE.BoxGeometry(0.12,0.12,gunLen), gunMat);
+  gun.position.set(0.32, -0.22, -0.85); viewModel.add(gun);
   const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.06,0.25), gunMat);
-  barrel.position.set(0.32, -0.22, -0.85 - gunLen/2 - 0.1);
-  viewModel.add(barrel);
+  barrel.position.set(0.32, -0.22, -0.85 - gunLen/2 - 0.1); viewModel.add(barrel);
 }
 buildViewModel(curWeapon);
 
-// ================== ТИПЫ ЗОМБИ ==================
-const ZOMBIE_TYPES = {
-  walker: { name:'Ходок', hp:50, speed:1.2, dmg:8, color:0x6a8a4a, scale:1.0, reward:25, icon:'🧟' },
-  runner: { name:'Бегун', hp:35, speed:3.2, dmg:12, color:0xc9a227, scale:0.9, reward:75, icon:'🏃' },
-  brute: { name:'Громила', hp:200, speed:0.9, dmg:25, color:0x8b3a3a, scale:1.5, reward:200, icon:'💪' },
-  spitter: { name:'Плевун', hp:80, speed:1.5, dmg:18, color:0x4aa87a, scale:1.0, reward:150, icon:'🤢', ranged:true, range:15, cd:2.5 },
-  tank: { name:'Танк', hp:800, speed:0.7, dmg:45, color:0x333333, scale:2.2, reward:800, icon:'👹', glow:0xff4400 },
-  mutant: { name:'Мутант', hp:400, speed:2.2, dmg:35, color:0xaa22cc, scale:1.7, reward:500, icon:'☣️', glow:0xaa22cc, regenerate:5 },
-  boss: { name:'КРОВАВЫЙ ЛОРД', hp:2500, speed:1.4, dmg:70, color:0x880000, scale:3.0, reward:5000, icon:'👑', glow:0xff0000, regenerate:15, ranged:true, range:20, cd:1.8 }
+// ЗОМБИ
+const ZT = {
+  walker: { name:'Ходок',  hp:50,   speed:1.2, dmg:8,  color:0x6a8a4a, scale:1.0, reward:25,   icon:'🧟' },
+  runner: { name:'Бегун',  hp:35,   speed:3.2, dmg:12, color:0xc9a227, scale:0.9, reward:75,   icon:'🏃' },
+  brute:  { name:'Громила',hp:200,  speed:0.9, dmg:25, color:0x8b3a3a, scale:1.5, reward:200,  icon:'💪' },
+  mutant: { name:'Мутант', hp:400,  speed:2.2, dmg:35, color:0xaa22cc, scale:1.7, reward:500,  icon:'☣️', glow:0xaa22cc, regen:5 },
+  boss:   { name:'ЛОРД',   hp:2500, speed:1.4, dmg:70, color:0x880000, scale:3.0, reward:5000, icon:'👑', glow:0xff0000, regen:15 }
 };
-
-const SPAWN_WEIGHTS = { walker:55, runner:22, spitter:10, brute:7, mutant:3.5, tank:2, boss:0.5 };
-
+const SW = { walker:55, runner:24, brute:11, mutant:7.5, boss:2.5 };
 const zombies = [];
-
-function pickZombieType() {
-  let r = Math.random() * 100;
-  for (const [type, weight] of Object.entries(SPAWN_WEIGHTS)) {
-    r -= weight;
-    if (r <= 0) return type;
-  }
+function pickType() {
+  let r = Math.random()*100;
+  for (const [t,w] of Object.entries(SW)) { r -= w; if (r <= 0) return t; }
   return 'walker';
 }
-
-function spawnZombie(nearPlayer = true, forceType = null) {
-  if (zombies.length >= CFG.maxZombies) return;
-  const typeKey = forceType || pickZombieType();
-  const T = ZOMBIE_TYPES[typeKey];
+function spawnZombie(near = true, force = null) {
+  if (zombies.length >= 22) return;
+  const key = force || pickType();
+  const T = ZT[key];
   const g = new THREE.Group();
   const mat = new THREE.MeshLambertMaterial({ color: T.color });
   const s = T.scale;
-
   const body = new THREE.Mesh(new THREE.BoxGeometry(0.6*s, 1.1*s, 0.35*s), mat);
   body.position.y = 1.0*s; g.add(body);
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.45*s, 0.45*s, 0.45*s), mat);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.45*s,0.45*s,0.45*s), mat);
   head.position.y = 1.85*s; g.add(head);
-
   if (T.glow) {
     const eyeMat = new THREE.MeshBasicMaterial({ color: T.glow });
-    const eye1 = new THREE.Mesh(new THREE.SphereGeometry(0.06*s, 6, 6), eyeMat);
-    eye1.position.set(-0.1*s, 1.9*s, 0.23*s); g.add(eye1);
-    const eye2 = eye1.clone(); eye2.position.x = 0.1*s; g.add(eye2);
-    const aura = new THREE.PointLight(T.glow, 0.8, 6);
-    aura.position.set(0, 1.2*s, 0); g.add(aura);
+    const e1 = new THREE.Mesh(new THREE.SphereGeometry(0.06*s,6,6), eyeMat);
+    e1.position.set(-0.1*s, 1.9*s, 0.23*s); g.add(e1);
+    const e2 = e1.clone(); e2.position.x = 0.1*s; g.add(e2);
   }
-
-  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.18*s, 0.8*s, 0.18*s), mat);
-  armL.position.set(-0.4*s, 1.2*s, -0.15*s);
-  armL.rotation.x = -0.5; g.add(armL);
+  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.18*s,0.8*s,0.18*s), mat);
+  armL.position.set(-0.4*s, 1.2*s, -0.15*s); armL.rotation.x = -0.5; g.add(armL);
   const armR = armL.clone(); armR.position.x = 0.4*s; g.add(armR);
-
-  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.22*s, 0.85*s, 0.22*s), mat);
+  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.22*s,0.85*s,0.22*s), mat);
   legL.position.set(-0.15*s, 0.42*s, 0); g.add(legL);
   const legR = legL.clone(); legR.position.x = 0.15*s; g.add(legR);
-
   let x, z;
-  if (nearPlayer) {
-    const a = Math.random() * Math.PI * 2;
-    const dist = CFG.zombieSpawnDist + Math.random() * 25;
-    x = player.pos.x + Math.cos(a) * dist;
-    z = player.pos.z + Math.sin(a) * dist;
+  if (near) {
+    const a = Math.random()*Math.PI*2;
+    const d = 35 + Math.random()*25;
+    x = player.pos.x + Math.cos(a)*d;
+    z = player.pos.z + Math.sin(a)*d;
   } else {
-    x = (Math.random()-0.5) * CFG.worldSize * 1.6;
-    z = (Math.random()-0.5) * CFG.worldSize * 1.6;
+    x = (Math.random()-0.5)*WORLD*1.6;
+    z = (Math.random()-0.5)*WORLD*1.6;
   }
-  x = Math.max(-CFG.worldSize, Math.min(CFG.worldSize, x));
-  z = Math.max(-CFG.worldSize, Math.min(CFG.worldSize, z));
+  x = Math.max(-WORLD, Math.min(WORLD, x));
+  z = Math.max(-WORLD, Math.min(WORLD, z));
   g.position.set(x, 0, z);
   scene.add(g);
-
   zombies.push({
-    mesh:g, legs:[legL, legR], arms:[armL, armR],
-    type:typeKey, def:T, hp:T.hp, maxHp:T.hp, speed:T.speed,
-    atkCD:0, shootCD:T.cd||0, alive:true,
-    wobble: Math.random()*Math.PI*2
+    mesh:g, legs:[legL,legR], arms:[armL,armR],
+    type:key, def:T, hp:T.hp, maxHp:T.hp, speed:T.speed,
+    atkCD:0, alive:true, wobble: Math.random()*Math.PI*2
   });
 }
-
 for (let i = 0; i < 12; i++) spawnZombie(false);
 
-// ================== МАШИНЫ ==================
+// МАШИНЫ
 const cars = [];
 const carColors = [0xcc2222, 0x2266cc, 0xddaa22, 0x22aa55, 0xee22ee, 0xdddddd, 0x222222];
-
-function createCar(opts = {}) {
+function createCar(opts) {
+  opts = opts || {};
   const g = new THREE.Group();
-  const colorIdx = opts.color ?? (Math.random()*carColors.length)|0;
-  const bodyMat = new THREE.MeshLambertMaterial({color:carColors[colorIdx]});
-
-  const body = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.7, 4.0), bodyMat);
-  body.position.y = 0.9;
-  g.add(body);
-
-  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.65, 1.8),
+  const cIdx = opts.color != null ? opts.color : (Math.random()*carColors.length)|0;
+  const bodyMat = new THREE.MeshLambertMaterial({color:carColors[cIdx]});
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2, 0.7, 4), bodyMat);
+  body.position.y = 0.9; g.add(body);
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.7,0.65,1.8),
     new THREE.MeshLambertMaterial({color:0x222233}));
-  cabin.position.set(0, 1.55, -0.1);
-  g.add(cabin);
-
-  const wheelMat = new THREE.MeshLambertMaterial({color:0x111111});
-  const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.3, 8);
+  cabin.position.set(0, 1.55, -0.1); g.add(cabin);
+  const wMat = new THREE.MeshLambertMaterial({color:0x111111});
+  const wGeo = new THREE.CylinderGeometry(0.42,0.42,0.3,8);
   const wheels = [];
-  const positions = [[-0.95,0.42,1.3],[0.95,0.42,1.3],[-0.95,0.42,-1.3],[0.95,0.42,-1.3]];
-  positions.forEach(p => {
-    const w = new THREE.Mesh(wheelGeo, wheelMat);
-    w.rotation.z = Math.PI/2;
-    w.position.set(...p);
-    g.add(w);
-    wheels.push(w);
+  [[-0.95,0.42,1.3],[0.95,0.42,1.3],[-0.95,0.42,-1.3],[0.95,0.42,-1.3]].forEach(p => {
+    const w = new THREE.Mesh(wGeo, wMat);
+    w.rotation.z = Math.PI/2; w.position.set(p[0],p[1],p[2]);
+    g.add(w); wheels.push(w);
   });
-
-  let turret = null;
-  if (opts.turret > 0) {
-    turret = new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.25,0.4,8), wheelMat);
-    turret.position.set(0, 2.05, -0.1); g.add(turret);
-    const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.9), wheelMat);
-    barrel.position.set(0, 2.1, -0.8); g.add(barrel);
-  }
-
-  const spikeMat = new THREE.MeshLambertMaterial({color:0x333333});
-  for (let i = 0; i < 6; i++) {
-    const sp = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.4, 4), spikeMat);
-    const side = i < 3 ? -1 : 1;
-    sp.position.set(side*1.05, 0.9, (i%3-1)*1.2);
-    sp.rotation.z = side * Math.PI/2;
-    g.add(sp);
-  }
-
   const car = {
-    mesh:g, body, cabin, wheels, turret,
-    speed: 4 + (opts.speed ?? 5),
-    armor: opts.armor ?? 3,
-    wheelScale: 1 + ((opts.wheel ?? 1) - 1) * 0.15,
-    colorIdx,
-    vel: new THREE.Vector3(),
-    yaw: 0,
-    hp: 100,
-    driver: null,
-    tuning: opts
+    mesh:g, body, wheels,
+    speed: 4 + (opts.speed || 5),
+    armor: opts.armor || 3,
+    colorIdx: cIdx,
+    vel: new THREE.Vector3(), yaw: 0, hp: 100, driver: null, tuning: opts
   };
-  wheels.forEach(w => w.scale.setScalar(car.wheelScale));
+  const ws = 1 + ((opts.wheel || 1) - 1) * 0.15;
+  wheels.forEach(w => w.scale.setScalar(ws));
   return car;
 }
-
-function spawnCar(pos, opts={}) {
+function spawnCar(pos, opts) {
   const car = createCar(opts);
   car.mesh.position.copy(pos);
   scene.add(car.mesh);
   cars.push(car);
   return car;
 }
+spawnCar(new THREE.Vector3(3,0,5), {speed:5, armor:3, wheel:1, color:0});
+for (let i = 0; i < 4; i++)
+  spawnCar(new THREE.Vector3((Math.random()-0.5)*100, 0, (Math.random()-0.5)*100), {});
 
-spawnCar(new THREE.Vector3(3, 0, 5), {speed:5, armor:3, wheel:1, turret:0, color:0});
-for (let i = 0; i < 5; i++) {
-  spawnCar(new THREE.Vector3((Math.random()-0.5)*100, 0, (Math.random()-0.5)*100));
-}
-
-// ================== МАГАЗИНЫ ВЫЖИВШИХ ==================
+// МАГАЗИНЫ
 const shops = [];
-
 function createShop(pos) {
   const g = new THREE.Group();
-
-  const house = new THREE.Mesh(
-    new THREE.BoxGeometry(8, 5, 8),
-    new THREE.MeshLambertMaterial({ color: 0x8b6f47 })
-  );
-  house.position.y = 2.5; g.add(house);
-
-  const roof = new THREE.Mesh(
-    new THREE.ConeGeometry(6.5, 3, 4),
-    new THREE.MeshLambertMaterial({ color: 0x5b3a1f })
-  );
-  roof.position.y = 6.5;
-  roof.rotation.y = Math.PI/4; g.add(roof);
-
-  const door = new THREE.Mesh(
-    new THREE.BoxGeometry(1.5, 3, 0.2),
-    new THREE.MeshLambertMaterial({ color: 0x3a2615 })
-  );
+  const h = new THREE.Mesh(new THREE.BoxGeometry(8,5,8),
+    new THREE.MeshLambertMaterial({color:0x8b6f47}));
+  h.position.y = 2.5; g.add(h);
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(6.5,3,4),
+    new THREE.MeshLambertMaterial({color:0x5b3a1f}));
+  roof.position.y = 6.5; roof.rotation.y = Math.PI/4; g.add(roof);
+  const door = new THREE.Mesh(new THREE.BoxGeometry(1.5,3,0.2),
+    new THREE.MeshLambertMaterial({color:0x3a2615}));
   door.position.set(0, 1.5, 4.05); g.add(door);
-
-  const sign = new THREE.Mesh(
-    new THREE.BoxGeometry(4, 1, 0.3),
-    new THREE.MeshBasicMaterial({ color: 0xffdd44 })
-  );
+  const sign = new THREE.Mesh(new THREE.BoxGeometry(4,1,0.3),
+    new THREE.MeshBasicMaterial({color:0xffdd44}));
   sign.position.set(0, 4.2, 4.1); g.add(sign);
-
-  const survivor = new THREE.Group();
-  const sMat = new THREE.MeshLambertMaterial({ color: 0x4a7a9a });
-  const sBody = new THREE.Mesh(new THREE.BoxGeometry(0.7,1.2,0.4), sMat);
-  sBody.position.y = 1.2; survivor.add(sBody);
-  const sHead = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5),
+  const surv = new THREE.Group();
+  const sM = new THREE.MeshLambertMaterial({color:0x4a7a9a});
+  const sB = new THREE.Mesh(new THREE.BoxGeometry(0.7,1.2,0.4), sM);
+  sB.position.y = 1.2; surv.add(sB);
+  const sH = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5),
     new THREE.MeshLambertMaterial({color:0xffcc99}));
-  sHead.position.y = 2.0; survivor.add(sHead);
-  survivor.position.set(0, 0, 5.5); g.add(survivor);
-
-  const safeRing = new THREE.Mesh(
-    new THREE.RingGeometry(9, 10, 24),
-    new THREE.MeshBasicMaterial({ color: 0x44ff88, side: THREE.DoubleSide, transparent:true, opacity:0.3 })
-  );
-  safeRing.rotation.x = -Math.PI/2;
-  safeRing.position.y = 0.05; g.add(safenull);
-
+  sH.position.y = 2.0; surv.add(sH);
+  surv.position.set(0, 0, 5.5); g.add(surv);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(9,10,24),
+    new THREE.MeshBasicMaterial({color:0x44ff88, side:THREE.DoubleSide, transparent:true, opacity:0.3}));
+  ring.rotation.x = -Math.PI/2; ring.position.y = 0.05; g.add(ring);
   g.position.copy(pos);
   scene.add(g);
-
   shops.push({ mesh:g, pos:pos.clone(), safeRadius:9 });
 }
+createShop(new THREE.Vector3(60,0,60));
+createShop(new THREE.Vector3(-60,0,60));
+createShop(new THREE.Vector3(60,0,-60));
 
-createShop(new THREE.Vector3(60, 0, 60));
-createShop(new THREE.Vector3(-60, 0, 60));
-createShop(new THREE.Vector3(60, 0, -60));
-
-function keepZombiesOutOfShops(dt) {
-  for (const z of zombies) {
-    for (const s of shops) {
-      const dx = z.mesh.position.x - s.pos.x;
-      const dz = z.mesh.position.z - s.pos.z;
-      const d = Math.hypot(dx, dz);
-      if (d < s.safeRadius) {
-        const push = (s.safeRadius - d) * 2 * dt + 0.1;
-        z.mesh.position.x += (dx / (d || 1)) * push;
-        z.mesh.position.z += (dz / (d || 1)) * push;
+// ПУЛИ
+const bullets = [];
+function shoot(origin, dir, dmg, color) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.08,4,4),
+    new THREE.MeshBasicMaterial({color: color || 0xffee55}));
+  m.position.copy(origin);
+  scene.add(m);
+  bullets.push({ mesh:m, vel:dir.clone().multiplyScalar(80), life:1.5, dmg });
+}
+function updateBullets(dt) {
+  for (let i = bullets.length-1; i >= 0; i--) {
+    const b = bullets[i];
+    b.mesh.position.addScaledVector(b.vel, dt);
+    b.life -= dt;
+    let hit = false;
+    for (const z of zombies) {
+      if (!z.alive) continue;
+      const dx = b.mesh.position.x - z.mesh.position.x;
+      const dy = b.mesh.position.y - (z.mesh.position.y + z.def.scale);
+      const dz = b.mesh.position.z - z.mesh.position.z;
+      if (dx*dx + dy*dy + dz*dz < (0.9*z.def.scale)**2) {
+        z.hp -= b.dmg;
+        if (z.hp <= 0) killZombie(z);
+        hit = true; break;
       }
+    }
+    if (hit || b.life <= 0) {
+      scene.remove(b.mesh);
+      b.mesh.geometry.dispose();
+      b.mesh.material.dispose();
+      bullets.splice(i,1);
     }
   }
 }
 
-// ================== УПРАВЛЕНИЕ ==================
+// ЛУТ
+const pickups = [];
+const PICK = {
+  ammo_pistol:{color:0xffee55,size:0.3}, ammo_rifle:{color:0xffaa00,size:0.3},
+  money_small:{color:0x22cc22,size:0.25}, money_med:{color:0x22cc22,size:0.35},
+  money_big:{color:0x22ff22,size:0.45}, medkit:{color:0xff3333,size:0.4},
+  armor:{color:0x3366ff,size:0.4}, weapon_shotgun:{color:0x885522,size:0.5},
+  weapon_ak:{color:0x553322,size:0.5}, weapon_railgun:{color:0x00aaff,size:0.6}
+};
+function spawnPickup(pos, item, amount) {
+  const S = PICK[item];
+  if (!S) return;
+  const g = new THREE.Group();
+  const core = new THREE.Mesh(new THREE.BoxGeometry(S.size,S.size,S.size),
+    new THREE.MeshBasicMaterial({color:S.color}));
+  g.add(core);
+  const beam = new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.03,2,4),
+    new THREE.MeshBasicMaterial({color:S.color, transparent:true, opacity:0.3}));
+  beam.position.y = 1; g.add(beam);
+  g.position.copy(pos);
+  scene.add(g);
+  pickups.push({mesh:g, core, item, amount, life:30, rot: Math.random()*Math.PI*2});
+}
+const LOOT = {
+  walker: [{i:'ammo_pistol',c:0.4,a:12},{i:'money_small',c:0.3,a:15}],
+  runner: [{i:'ammo_pistol',c:0.5,a:20},{i:'money_small',c:0.5,a:40},{i:'medkit',c:0.15}],
+  brute:  [{i:'ammo_rifle',c:0.5,a:20},{i:'money_med',c:0.7,a:200},{i:'armor',c:0.4},{i:'weapon_shotgun',c:0.15}],
+  mutant: [{i:'money_big',c:0.8,a:400},{i:'armor',c:0.6},{i:'weapon_ak',c:0.3},{i:'medkit',c:0.5}],
+  boss:   [{i:'money_big',c:1.0,a:5000},{i:'armor',c:1.0},{i:'weapon_railgun',c:0.7},{i:'medkit',c:1.0}]
+};
+function dropLoot(z) {
+  const T = z.def;
+  const tb = LOOT[z.type] || [];
+  const p = z.mesh.position.clone(); p.y = 0.6;
+  player.money += T.reward;
+  updateMoney();
+  showNote(T.icon + ' ' + T.name + ' +' + T.reward + '💰', 900);
+  for (const e of tb) if (Math.random() < e.c) spawnPickup(p.clone(), e.i, e.a || 1);
+}
+function applyPickup(p) {
+  const it = p.item, amt = p.amount || 1;
+  if (it.startsWith('money_')) { player.money += amt; updateMoney(); showNote('💰 +'+amt, 600); return; }
+  if (it === 'medkit') { player.hp = Math.min(100, player.hp+40); updateHud(); showNote('❤️ +40', 600); return; }
+  if (it === 'armor') { player.armorItems++; player.hp = Math.min(150, player.hp+10); updateHud(); showNote('🛡️ Броня!', 700); return; }
+  if (it.startsWith('ammo_')) {
+    const idx = {pistol:0,smg:1,shotgun:2,rifle:3,ak:4,minigun:5,railgun:6}[it.replace('ammo_','')];
+    if (idx !== undefined) { ammo[idx] = Math.min(WEAPONS[idx].mag*3, (ammo[idx]||0)+amt); updateHud(); showNote('🔸 +'+amt, 500); }
+    return;
+  }
+  if (it.startsWith('weapon_')) {
+    const idx = {weapon_shotgun:2, weapon_ak:3, weapon_railgun:4}[it];
+    if (idx !== undefined) {
+      if (!player.unlockedWeapons.includes(idx)) {
+        player.unlockedWeapons.push(idx);
+        ammo[idx] = WEAPONS[idx].mag;
+        refreshWeaponBar();
+        showNote('🎁 ' + WEAPONS[idx].name, 1500);
+      } else ammo[idx] = (ammo[idx]||0) + WEAPONS[idx].mag;
+      switchWeapon(idx);
+    }
+  }
+}
+function updatePickups(dt) {
+  for (let i = pickups.length-1; i >= 0; i--) {
+    const p = pickups[i];
+    p.rot += dt*2;
+    p.core.rotation.y = p.rot;
+    p.core.rotation.x = p.rot*0.5;
+    p.mesh.position.y = 0.6 + Math.sin(p.rot*2)*0.1;
+    p.life -= dt;
+    if (p.mesh.position.distanceTo(player.pos) < 2.2 && !player.inCar) {
+      applyPickup(p); scene.remove(p.mesh); pickups.splice(i,1); continue;
+    }
+    if (p.life <= 0) { scene.remove(p.mesh); pickups.splice(i,1); }
+  }
+}
+
+// УПРАВЛЕНИЕ
 const keys = {};
 addEventListener('keydown', e => keys[e.code] = true);
-addEventListener('keyup',   e => keys[e.code] = false);
-
-const move = {x:0, y:0};
-const look = {x:0, y:0};
-
+addEventListener('keyup', e => keys[e.code] = false);
+const move = {x:0, y:0}, look = {x:0, y:0};
 function setupStick(el, out) {
   const knob = el.querySelector('.knob');
-  const maxR = 45;
-  let id = null
+  const maxR = 42;
+  let id = null, cx = 0, cy = 0;
+  const start = e => {
+    const t = e.changedTouches ? e.changedTouches[0] : e;
+    id = t.identifier != null ? t.identifier : 'm';
+    const r = el.getBoundingClientRect();
+    cx = r.left + r.width/2; cy = r.top + r.height/2;
+    moveH(e);
+  };
+  const moveH = e => {
+    if (id === null) return;
+    let t;
+    if (e.changedTouches) t = [].slice.call(e.changedTouches).find(x => x.identifier === id);
+    else t = e;
+    if (!t) return;
+    let dx = t.clientX - cx, dy = t.clientY - cy;
+    const d = Math.hypot(dx, dy);
+    if (d > maxR) { dx = dx/d*maxR; dy = dy/d*maxR; }
+    knob.style.transform = 'translate(calc(-50% + '+dx+'px),calc(-50% + '+dy+'px))';
+    out.x = dx/maxR; out.y = dy/maxR;
+  };
+  const end = e => {
+    if (e.changedTouches && ![].slice.call(e.changedTouches).some(x => x.identifier === id)) return;
+    id = null;
+    knob.style.transform = 'translate(-50%,-50%)';
+    out.x = 0; out.y = 0;
+  };
+  el.addEventListener('touchstart', start, {passive:false});
+  el.addEventListener('touchmove', moveH, {passive:false});
+  el.addEventListener('touchend', end);
+  el.addEventListener('touchcancel', end);
+  el.addEventListener('mousedown', start);
+  addEventListener('mousemove', moveH);
+  addEventListener('mouseup', end);
+}
+setupStick(document.getElementById('stickL'), move);
+setupStick(document.getElementById('stickR'), look);
+
+let wantFire = false, wantJump = false;
+function bindHold(el, setter) {
+  const on = e => { e.preventDefault(); setter(true); };
+  const off = e => { e.preventDefault(); setter(false); };
+  el.addEventListener('touchstart', on);
+  el.addEventListener('touchend', off);
+  el.addEventListener('touchcancel', off);
+  el.addEventListener('mousedown', on);
+  addEventListener('mouseup', off);
+}
+bindHold(document.getElementById('btnFire'), v => wantFire = v);
+bindHold(document.getElementById('btnJump'), v => wantJump = v);
+
+const hpTxt = document.getElementById('hpTxt'), hpBar = document.getElementById('hpBar');
+const killsEl = document.getElementById('kills'), moneyEl = document.getElementById('money');
+const wNameEl = document.getElementById('wName'), ammoEl = document.getElementById('ammo');
+const modeHint = document.getElementById('modeHint'), noteEl = document.getElementById('note');
+function showNote(t, ms) {
+  noteEl.textContent = t;
+  noteEl.style.opacity = 1;
+  clearTimeout(showNote._t);
+  showNote._t = setTimeout(() => noteEl.style.opacity = 0, ms || 1500);
+}
+function updateMoney() { moneyEl.textContent = player.money; }
+function updateHud() {
+  hpTxt.textContent = Math.max(0, Math.round(player.hp));
+  hpBar.style.width = Math.max(0, Math.min(100, player.hp)) + '%';
+  killsEl.textContent = player.kills;
+  wNameEl.textContent = WEAPONS[curWeapon].name;
+  ammoEl.textContent = ammo[curWeapon] + '/' + WEAPONS[curWeapon].mag;
+  modeHint.textContent = player.inCar ? '🚗 В машине — СЕСТЬ чтобы выйти' : '';
+  if (player.armorItems > 0) modeHint.textContent += ' 🛡️×' + player.armorItems;
+  updateMoney();
+}
+const weaponBar = document.getElementById('weaponBar');
+function refreshWeaponBar() {
+  weaponBar.innerHTML = '';
+  WEAPONS.forEach((w, i) => {
+    if (!player.unlockedWeapons.includes(i)) return;
+    const d = document.createElement('div');
+    d.className = 'wslot' + (i === curWeapon ? ' active' : '');
+    d.innerHTML = '<div>' + (i+1) + '</div><div>' + w.name.slice(0,6) + '</div>';
+    d.addEventListener('touchstart', e => { e.preventDefault(); switchWeapon(i); });
+    d.addEventListener('mousedown', e => { e.preventDefault(); switchWeapon(i); });
+    weaponBar.appendChild(d);
+  });
+}
+function switchWeapon(i) {
+  if (i === curWeapon) return;
+  if (!player.unlockedWeapons.includes(i)) { showNote('🔒 Не куплено', 1000); return; }
+  curWeapon = i;
+  buildViewModel(curWeapon);
+  reloading = false;
+  refreshWeaponBar();
+  updateHud();
+}
+refreshWeaponBar();
+
+// СТРЕЛЬБА
+let lastFire = 0;
+function shootGun(now, origin, dir) {
+  const w = WEAPONS[curWeapon];
+  const pellets = w.pellets || 1;
+  for (let p = 0; p < pellets; p++) {
+    const d = dir.clone();
+    d.x += (Math.random()-0.5) * w.spread * 4;
+    d.y += (Math.random()-0.5) * w.spread * 4;
+    d.z += (Math.random()-0.5) * w.spread * 4;
+    d.normalize();
+    shoot(origin, d, w.dmg);
+  }
+  player.pitch += 0.03;
+}
+
+// ИГРОК
+const playerRadius = 0.5;
+function tryMovePlayer(nx, nz) {
+  for (const b of buildings) {
+    if (nx + playerRadius > b.box.min.x && nx - playerRadius < b.box.max.x &&
+        nz + playerRadius > b.box.min.z && nz - playerRadius < b.box.max.z) return false;
+  }
+  return true;
+}
+function killZombie(z) {
+  z.alive = false;
+  scene.remove(z.mesh);
+  const i = zombies.indexOf(z);
+  if (i >= 0) zombies.splice(i, 1);
+  player.kills++;
+  updateHud();
+  dropLoot(z);
+}
+function respawnPlayer() {
+  player.hp = 100;
+  player.pos.set(0, 1.7, 5);
+  player.vel.set(0, 0, 0);
+  if (player.inCar && drivingCar) {
+    drivingCar.driver = null;
+    player.inCar = false;
+    drivingCar = null;
+  }
+  updateHud();
+  showNote('💀 Возрождение', 1500);
+}
+
+let drivingCar = null;
+function updateCarDriving(dt, now) {
+  const c = drivingCar;
+  if (!c) return;
+  let ix = move.x, iy = move.y;
+  if (keys['KeyW']) iy = -1;
+  if (keys['KeyS']) iy = 1;
+  if (keys['KeyA']) ix = -1;
+  if (keys['KeyD']) ix = 1;
+  const accel = -iy * c.speed * 4;
+  c.yaw += ix * dt * (Math.abs(accel) > 0.5 ? 1.8 : 1.0);
+  const fwd = new THREE.Vector3(-Math.sin(c.yaw), 0, -Math.cos(c.yaw));
+  const target = fwd.clone().multiplyScalar(-accel * 0.25);
+  c.vel.lerp(target, Math.min(1, dt*3));
+  const nx = c.mesh.position.x + c.vel.x*dt;
+  const nz = c.mesh.position.z + c.vel.z*dt;
+  let blocked = false;
+  for (const b of buildings) {
+    const pbx = new THREE.Box3(
+      new THREE.Vector3(nx-1.1, 0, nz-2.1),
+      new THREE.Vector3(nx+1.1, 2, nz+2.1));
+    if (b.box.intersectsBox(pbx)) { blocked = true; break; }
+  }
+  if (!blocked) { c.mesh.position.x = nx; c.mesh.position.z = nz; }
+  else c.vel.multiplyScalar(0.3);
+  c.mesh.position.x = Math.max(-WORLD, Math.min(WORLD, c.mesh.position.x));
+  c.mesh.position.z = Math.max(-WORLD, Math.min(WORLD, c.mesh.position.z));
+  c.mesh.rotation.y = c.yaw;
+  const sp = c.vel.length();
+  c.wheels.forEach(w => w.rotation.x += sp * dt * 2);
+
+  const off = new THREE.Vector3(0, 1.9, 0.2);
+  off.applyAxisAngle(new THREE.Vector3(0,1,0), c.yaw);
+  player.pos.copy(c.mesh.position).add(off);
+  player.yaw = c.yaw;
+
+  if (wantFire || keys['KeyF']) {
+    const w = WEAPONS[curWeapon];
+    if (now - lastFire > w.rate && !reloading && ammo[curWeapon] > 0) {
+      lastFire = now;
+      ammo[curWeapon]--;
+      updateHud();
+      const dir = new THREE.Vector3();
+      camera.getWorldDirection(dir);
+      const origin = c.mesh.position.clone().add(new THREE.Vector3(0,1.4,0));
+      shootGun(now, origin, dir);
+      if (ammo[curWeapon] === 0) { reloading = true; reloadEnd = now + w.reload; }
+    }
+  }
+  if (reloading && now > reloadEnd) {
+    reloading = false;
+    ammo[curWeapon] = WEAPONS[curWeapon].mag;
+    updateHud();
+  }
+}
+
+function updatePlayer(dt, now) {
+  let lx = look.x, ly = look.y;
+  if (keys['ArrowLeft']) lx = -1;
+  if (keys['ArrowRight']) lx = 1;
+  if (keys['ArrowUp']) ly = -1;
+  if (keys['ArrowDown']) ly = 1;
+  player.yaw -= lx * dt * 2.4;
+  player.pitch -= ly * dt * 2.0;
+  player.pitch = Math.max(-1.3, Math.min(1.3, player.pitch));
+
+  if (player.inCar) { updateCarDriving(dt, now); return; }
+
+  let ix = move.x, iy = move.y;
+  if (keys['KeyW']) iy = -1;
+  if (keys['KeyS']) iy = 1;
+  if (keys['KeyA']) ix = -1;
+  if (keys['KeyD']) ix = 1;
+
+  const fwd = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
+  const rgt = new THREE.Vector3(Math.cos(player.yaw), 0, -Math.sin(player.yaw));
+  const running = keys['ShiftLeft'] || keys['ShiftRight'];
+  const spd = running ? player.runSpeed : player.speed;
+  const wish = new THREE.Vector3();
+  wish.addScaledVector(fwd, -iy);
+  wish.addScaledVector(rgt, ix);
+  if (wish.lengthSq() > 1) wish.normalize();
+  wish.multiplyScalar(spd);
+  const accel = player.onGround ? 14 : 4;
+  player.vel.x += (wish.x - player.vel.x) * Math.min(1, dt*accel);
+  player.vel.z += (wish.z - player.vel.z) * Math.min(1, dt*accel);
+  if ((wantJump || keys['Space']) && player.onGround) {
+    player.vel.y = player.jump;
+    player.onGround = false;
+    wantJump = false;
+  }
+  player.vel.y -= player.gravity * dt;
+  const nx = player.pos.x + player.vel.x*dt;
+  const nz = player.pos.z + player.vel.z*dt;
+  if (tryMovePlayer(nx, player.pos.z)) player.pos.x = nx; else player.vel.x = 0;
+  if (tryMovePlayer(player.pos.x, nz)) player.pos.z = nz; else player.vel.z = 0;
+  player.pos.y += player.vel.y*dt;
+  if (player.pos.y <= 1.7) { player.pos.y = 1.7; player.vel.y = 0; player.onGround = true; }
+  player.pos.x = Math.max(-WORLD, Math.min(WORLD, player.pos.x));
+  player.pos.z = Math.max(-WORLD, Math.min(WORLD, player.pos.z));
+
+  if (reloading && now > reloadEnd) {
+    reloading = false;
+    ammo[curWeapon] = WEAPONS[curWeapon].mag;
+    updateHud();
+  }
+  const w = WEAPONS[curWeapon];
+  const firePressed = wantFire || keys['KeyF'];
+  if (firePressed && !reloading && ammo[curWeapon] > 0 && now - lastFire > w.rate) {
+    lastFire = now;
+    ammo[curWeapon]--;
+    updateHud();
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    const origin = player.pos.clone().add(new THREE.Vector3(0, -0.1, 0));
+    shootGun(now, origin, dir);
+  }
+  if (keys['KeyR'] && !reloading && ammo[curWeapon] < w.mag) {
+    reloading = true; reloadEnd = now + w.reload;
+    showNote('Перезарядка...', 800);
+    keys['KeyR'] = false;
+  }
+  for (let i = 0; i < 5; i++) {
+    if (keys['Digit'+(i+1)]) { switchWeapon(i); keys['Digit'+(i+1)] = false; }
+  }
+  const moveSpd = Math.hypot(player.vel.x, player.vel.z);
+  if (player.onGround && moveSpd > 0.5) {
+    const t = now * 9 * (running ? 1.4 : 1);
+    viewModel.position.x = Math.sin(t) * 0.012;
+    viewModel.position.y = Math.abs(Math.cos(t)) * 0.012 - 0.005;
+  } else {
+    viewModel.position.x *= 0.9;
+    viewModel.position.y *= 0.9;
+  }
+}
+
+// ЗОМБИ ИИ
+function updateZombies(dt, now) {
+  for (const z of zombies) {
+    if (!z.alive) continue;
+    const T = z.def;
+    const dx = player.pos.x - z.mesh.position.x;
+    const dz = player.pos.z - z.mesh.position.z;
+    const dist = Math.hypot(dx, dz);
+    z.mesh.rotation.y = Math.atan2(dx, dz) + Math.PI;
+    if (T.regen && z.hp < z.maxHp) z.hp = Math.min(z.maxHp, z.hp + T.regen*dt);
+    if (dist > 1.4*T.scale) {
+      z.mesh.position.x += (dx/dist) * z.speed * dt;
+      z.mesh.position.z += (dz/dist) * z.speed * dt;
+    } else {
+      z.atkCD -= dt;
+      if (z.atkCD <= 0) {
+        z.atkCD = 1.2;
+        player.hp -= T.dmg;
+        updateHud();
+        showNote(T.icon + ' ' + T.name + ' -' + T.dmg, 500);
+        if (player.hp <= 0) respawnPlayer();
+      }
+    }
+    z.wobble += dt * (4 + z.speed*2);
+    z.legs[0].rotation.x = Math.sin(z.wobble) * 0.5;
+    z.legs[1].rotation.x = -Math.sin(z.wobble) * 0.5;
+    z.arms[0].rotation.z = Math.sin(z.wobble*0.7)*0.15 - 0.3;
+    z.arms[1].rotation.z = -Math.sin(z.wobble*0.7)*0.15 + 0.3;
+    for (const c of cars) {
+      const cdx = z.mesh.position.x - c.mesh.position.x;
+      const cdz = z.mesh.position.z - c.mesh.position.z;
+      const cd = Math.hypot(cdx, cdz);
+      const cs = c.vel.length();
+      if (cd < 2.2 + T.scale && cs > 2.5) {
+        z.hp -= cs * 8 * c.armor;
+        if (z.hp <= 0) killZombie(z);
+      }
+    }
+    z.mesh.position.x = Math.max(-WORLD, Math.min(WORLD, z.mesh.position.x));
+    z.mesh.position.z = Math.max(-WORLD, Math.min(WORLD, z.mesh.position.z));
+    for (const s of shops) {
+      const sdx = z.mesh.position.x - s.pos.x;
+      const sdz = z.mesh.position.z - s.pos.z;
+      const sd = Math.hypot(sdx, sdz);
+      if (sd < s.safeRadius) {
+        const push = (s.safeRadius - sd) * 2 * dt + 0.1;
+        z.mesh.position.x += (sdx/(sd||1)) * push;
+        z.mesh.position.z += (sdz/(sd||1)) * push;
+      }
+    }
+  }
+  if (zombies.length < 22 && Math.random() < dt * 1.2) spawnZombie(true);
+}
+
+// КАМЕРА
+function updateCamera() {
+  camera.position.copy(player.pos);
+  camera.position.y += 0.05;
+  const dir = new THREE.Vector3(
+    -Math.sin(player.yaw) * Math.cos(player.pitch),
+    Math.sin(player.pitch),
+    -Math.cos(player.yaw) * Math.cos(player.pitch));
+  camera.lookAt(camera.position.clone().add(dir));
+  viewModel.position.copy(camera.position);
+  viewModel.quaternion.copy(camera.quaternion);
+  const off = new THREE.Vector3(0, -0.1, -0.2);
+  off.applyQuaternion(camera.quaternion);
+  viewModel.position.add(off);
+}
+
+// ВХОД/ВЫХОД ИЗ МАШИНЫ
+function toggleEnterCar() {
+  if (player.inCar && drivingCar) {
+    player.inCar = false;
+    drivingCar.driver = null;
+    const side = new THREE.Vector3(1.8, 0, 0);
+    side.applyAxisAngle(new THREE.Vector3(0,1,0), drivingCar.yaw);
+    player.pos.copy(drivingCar.mesh.position).add(side);
+    player.pos.y = 1.7;
+    drivingCar = null;
+    updateHud();
+    return;
+  }
+  let best = null, bestD = 4;
+  for (const c of cars) {
+    const d = c.mesh.position.distanceTo(player.pos);
+    if (d < bestD && !c.driver) { bestD = d; best = c; }
+  }
+  if (best) {
+    drivingCar = best;
+    best.driver = 'player';
+    player.inCar = true;
+    player.pitch = 0;
+    showNote('🚗 Сел в машину', 800);
+    updateHud();
+  } else showNote('Рядом нет машины', 1000);
+}
+document.getElementById('btnEnter').addEventListener('touchstart', e => { e.preventDefault(); toggleEnterCar(); });
+document.getElementById('btnEnter').addEventListener('mousedown', e => { e.preventDefault(); toggleEnterCar(); });
+
+function updateEnterButton() {
+  const btn = document.getElementById('btnEnter');
+  if (player.inCar) { btn.style.display = 'flex'; return; }
+  let near = false;
+  for (const c of cars) {
+    if (c.mesh.position.distanceTo(player.pos) < 4 && !c.driver) { near = true; break; }
+  }
+  btn.style.display = near ? 'flex' : 'none';
+}
+
+// ТЮНИНГ
+const tuneMenu = document.getElementById('tuneMenu');
+function openTune() {
+  if (!drivingCar) { showNote('Сначала сядь в машину', 1200); return; }
+  const t = drivingCar.tuning;
+  document.getElementById('tSpeed').textContent = t.speed || 5;
+  document.getElementById('tArmor').textContent = t.armor || 3;
+  document.getElementById('tWheel').textContent = t.wheel || 1;
+  document.getElementById('tColor').textContent = (t.color || 0) + 1;
+  tuneMenu.style.display = 'flex';
+}
+document.getElementById('btnTune').addEventListener('touchstart', e => { e.preventDefault(); openTune(); });
+document.getElementById('btnTune').addEventListener('mousedown', e => { e.preventDefault(); openTune(); });
+document.getElementById('tuneClose').addEventListener('click', () => tuneMenu.style.display = 'none');
+document.querySelectorAll('#tuneMenu button[data-k]').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const k = btn.dataset.k, d = +btn.dataset.d, t = drivingCar.tuning;
+    if (k === 'speed') { t.speed = Math.max(3, Math.min(10, (t.speed || 5) + d)); drivingCar.speed = 4 + t.speed; document.getElementById('tSpeed').textContent = t.speed; }
+    else if (k === 'armor') { t.armor = Math.max(1, Math.min(8, (t.armor || 3) + d)); drivingCar.armor = t.armor; document.getElementById('tArmor').textContent = t.armor; }
+    else if (k === 'wheel') { t.wheel = Math.max(1, Math.min(4, (t.wheel || 1) + d)); const ws = 1 + (t.wheel-1)*0.15; drivingCar.wheels.forEach(w => w.scale.setScalar(ws)); document.getElementById('tWheel').textContent = t.wheel; }
+    else if (k === 'color') { t.color = ((t.color || 0) + d + carColors.length) % carColors.length; drivingCar.colorIdx = t.color; drivingCar.mesh.children[0].material.color.setHex(carColors[t.color]); document.getElementById('tColor').textContent = t.color + 1; }
+    showNote('🔧 ' + k, 400);
+  });
+});
+
+// МАГАЗИН
+const SHOP_ITEMS = [
+  { name:'🔸 Патроны пистолет', price:50,  act:()=>{ ammo[0] = Math.min(WEAPONS[0].mag*3, ammo[0]+30); }},
+  { name:'❤️ Аптечка (+50HP)',  price:300, act:()=>{ player.hp = Math.min(150, player.hp+50); }},
+  { name:'🛡️ Бронежилет',       price:800, act:()=>{ player.armorItems++; player.hp += 10; }},
+  { name:'🔫 ПП',               price:800, act:()=>unlockWeapon(1) },
+  { name:'🔫 Дробовик',         price:1500,act:()=>unlockWeapon(2) },
+  { name:'🔥 АК-74',            price:5000,act:()=>unlockWeapon(3) },
+  { name:'💠 Рельсотрон',       price:25000,act:()=>unlockWeapon(4) }
+];
+function unlockWeapon(i) {
+  if (player.unlockedWeapons.includes(i)) { ammo[i] = (ammo[i]||0) + WEAPONS[i].mag; return; }
+  player.unlockedWeapons.push(i);
+  ammo[i] = WEAPONS[i].mag;
+  refreshWeaponBar();
+  showNote('🎁 ' + WEAPONS[i].name, 1200);
+}
+const shopMenu = document.getElementById('shopMenu');
+const shopItemsEl = document.getElementById('shopItems');
+const shopMoneyEl = document.getElementById('shopMoney');
+function renderShop() {
+  shopMoneyEl.textContent = player.money;
+  shopItemsEl.innerHTML = '';
+  SHOP_ITEMS.forEach(it => {
+    const row = document.createElement('div');
+    row.className = 'shopRow';
+    const nm = document.createElement('div');
+    nm.className = 'nm';
+    nm.innerHTML = it.name + '<br><span>💰 ' + it.price + '</span>';
+    const buy = document.createElement('button');
+    buy.textContent = 'КУПИТЬ';
+    if (player.money < it.price) buy.style.background = '#555';
+    buy.addEventListener('click', () => {
+      if (player.money < it.price) { showNote('❌ Мало денег', 800); return; }
+      player.money -= it.price;
+      it.act();
+      updateHud();
+      showNote('✅ ' + it.name, 800);
+      renderShop();
+    });
+    row.appendChild(nm); row.appendChild(buy);
+    shopItemsEl.appendChild(row);
+  });
+}
+function openShop() { shopMenu.style.display = 'flex'; renderShop(); }
+document.getElementById('btnShop').addEventListener('touchstart', e => { e.preventDefault(); openShop(); });
+document.getElementById('btnShop').addEventListener('mousedown', e => { e.preventDefault(); openShop(); });
+document.getElementById('shopClose').addEventListener('click', () => shopMenu.style.display = 'none');
+function checkShop() {
+  let near = false;
+  for (const s of shops) if (player.pos.distanceTo(s.pos) < 12) { near = true; break; }
+  document.getElementById('btnShop').style.display = near ? 'flex' : 'none';
+  if (!near && shopMenu.style.display === 'flex') shopMenu.style.display = 'none';
+}
+
+// ЦИКЛ
+const clock = new THREE.Clock();
+function loop() {
+  requestAnimationFrame(loop);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const now = clock.elapsedTime;
+  updatePlayer(dt, now);
+  updateZombies(dt, now);
+  updateBullets(dt);
+  updatePickups(dt);
+  updateCamera();
+  updateEnterButton();
+  checkShop();
+  renderer.render(scene, camera);
+}
+
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+
+document.getElementById('load').style.display = 'none';
+document.getElementById('start').style.display = 'flex';
+document.getElementById('startBtn').addEventListener('click', () => {
+  document.getElementById('start').style.display = 'none';
+  updateHud();
+  loop();
+  showNote('Добро пожаловать! Правый джойстик — обзор', 3000);
+});
+</script>
+</body>
+</html>
