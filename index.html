@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>Zombie Open World</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+  html,body{width:100%;height:100%;overflow:hidden;background:#000;font-family:Arial,sans-serif}
+  canvas{display:block;position:fixed;inset:0}
+
+  #ui{position:fixed;inset:0;pointer-events:none;z-index:10}
+
+  #cross{position:absolute;top:50%;left:50%;width:22px;height:22px;transform:translate(-50%,-50%)}
+  #cross::before,#cross::after{content:"";position:absolute;background:#fff;box-shadow:0 0 3px #000}
+  #cross::before{left:50%;top:0;width:2px;height:100%;transform:translateX(-50%)}
+  #cross::after{top:50%;left:0;height:2px;width:100%;transform:translateY(-50%)}
+
+  #hud{position:absolute;top:10px;left:12px;color:#fff;font-size:14px;text-shadow:0 0 4px #000;line-height:1.4}
+  #hud b{font-weight:bold}
+  .bar{width:120px;height:12px;background:rgba(0,0,0,.5);border:1px solid #fff;border-radius:3px;margin-top:2px;overflow:hidden}
+  .bar i{display:block;height:100%;background:#e33;transition:width .15s}
+
+  .stick{position:absolute;bottom:25px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.28);pointer-events:auto}
+  #stickL{left:20px}
+  #stickR{right:20px}
+  .stick .knob{position:absolute;top:50%;left:50%;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.4);transform:translate(-50%,-50%)}
+
+  .btn{position:absolute;border-radius:50%;color:#fff;font-size:10px;font-weight:bold;display:flex;align-items:center;justify-content:center;text-align:center;border:2px solid #fff;pointer-events:auto;text-shadow:0 0 3px #000}
+  #btnFire {right:170px;bottom:100px;width:70px;height:70px;background:rgba(220,40,40,.75)}
+  #btnJump {right:170px;bottom:20px;width:70px;height:70px;background:rgba(40,110,220,.75)}
+  #btnReload{right:250px;bottom:60px;width:56px;height:56px;background:rgba(200,160,40,.7)}
+  #btnEnter{right:60px;bottom:170px;width:70px;height:70px;background:rgba(60,180,80,.8);display:none}
+  #btnSwap {right:250px;bottom:130px;width:56px;height:56px;background:rgba(120,60,200,.7)}
+  #btnShop {right:60px;bottom:330px;width:80px;height:80px;background:rgba(255,215,0,.85);display:none;font-size:12px}
+  #btnTune {right:60px;bottom:250px;width:80px;height:80px;background:rgba(180,140,40,.85);font-size:11px}
+
+  #weaponBar{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);display:flex;gap:6px;pointer-events:auto}
+  .wslot{width:52px;height:52px;border-radius:8px;background:rgba(0,0,0,.5);border:2px solid #666;color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;text-align:center;flex-direction:column}
+  .wslot.active{border-color:#ffcc33;background:rgba(255,200,50,.25)}
+
+  #tuneMenu{position:absolute;inset:0;background:rgba(0,0,0,.82);color:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;pointer-events:auto;padding:20px;z-index:20}
+  #tuneMenu h2{margin-bottom:20px;font-size:22px}
+  .tuneRow{display:flex;align-items:center;gap:10px;margin:10px 0;width:100%;max-width:340px}
+  .tuneRow label{flex:1;font-size:14px}
+  .tuneRow button{width:40px;height:40px;border-radius:8px;border:none;background:#3498db;color:#fff;font-size:18px;font-weight:bold}
+  .tuneRow span{width:50px;text-align:center;font-size:14px;font-weight:bold;color:#ffcc33}
+  #tuneClose{margin-top:20px;padding:12px 30px;background:#e74c3c;border:none;border-radius:8px;color:#fff;font-size:16px;font-weight:bold}
+  #tuneInfo{position:absolute;top:20px;font-size:13px;color:#ffcc33;text-align:center;width:80%}
+
+  #shopMenu{position:absolute;inset:0;background:rgba(10,15,20,.95);color:#fff;display:none;flex-direction:column;pointer-events:auto;padding:20px;z-index:20;overflow-y:auto}
+  #shopMenu h2{text-align:center;color:#ffdd44;margin-bottom:6px}
+  #shopItems{display:flex;flex-direction:column;gap:8px;max-width:480px;margin:0 auto;width:100%}
+  #shopClose{margin:20px auto;padding:12px 30px;background:#e74c3c;border:none;border-radius:8px;color:#fff;font-size:16px;font-weight:bold}
+
+  #note{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:rgba(0,0,0,.85);color:#fff;padding:14px 24px;border-radius:10px;font-size:15px;opacity:0;transition:opacity .3s;pointer-events:none;text-align:center;max-width:80%}
+
+  #load{position:fixed;inset:0;background:#0b0b0b;color:#eee;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:18px;z-index:100}
+  #load small{margin-top:10px;color:#888;font-size:12px}
+
+  #start{position:fixed;inset:0;background:radial-gradient(circle,#2a1a1a,#000);color:#fff;display:none;flex-direction:column;align-items:center;justify-content:center;z-index:99;text-align:center;padding:20px}
+  #start h1{font-size:28px;color:#e33;margin-bottom:8px;text-shadow:0 0 12px #e33}
+  #start p{font-size:13px;color:#aaa;margin-bottom:24px;max-width:300px;line-height:1.6}
+  #start button{padding:16px 44px;background:#c0392b;border:none;border-radius:10px;color:#fff;font-size:18px;font-weight:bold;box-shadow:0 0 20px rgba(192,57,43,.6)}
+</style>
+</head>
+<body>
+
+<div id="load">Загрузка...<small>Первый запуск 5-10 сек</small></div>
+
+<div id="start">
+  <h1>🧟 ZOMBIE WORLD</h1>
+  <p>Открытый мир • Машины • Оружие • Тюнинг • Магазины</p>
+  <button id="startBtn">ИГРАТЬ</button>
+</div>
+
+<div id="ui">
+  <div id="cross"></div>
+  <div id="hud">
+    ❤️ <span id="hpTxt">100</span>
+    <div class="bar"><i id="hpBar" style="width:100%"></i></div>
+    <div style="margin-top:6px">🔫 <b id="wName">Пистолет</b> | <span id="ammo">12/12</span></div>
+    <div>🧟 Убито: <b id="kills">0</b></div>
+    <div>💰 <b id="money">500</b></div>
+    <div id="modeHint" style="color:#7cf;font-size:12px;margin-top:4px"></div>
+  </div>
+
+  <div class="stick" id="stickL"><div class="knob"></div></div>
+  <div class="stick" id="stickR"><div class="knob"></div></div>
+
+  <div class="btn" id="btnFire">ОГОНЬ</div>
+  <div class="btn" id="btnJump">ПРЫЖОК</div>
+  <div class="btn" id="btnReload">ПЕРЕ-<br>ЗАРЯД</div>
+  <div class="btn" id="btnSwap">СМЕНА</div>
+  <div class="btn" id="btnEnter">СЕСТЬ</div>
+  <div class="btn" id="btnShop">🏪<br>МАГАЗИН</div>
+  <div class="btn" id="btnTune">🔧<br>ТЮНИНГ</div>
+
+  <div id="weaponBar"></div>
+
+  <div id="tuneMenu">
+    <h2>🔧 ТЮНИНГ МАШИНЫ</h2>
+    <div id="tuneInfo">Изменяй характеристики. Дави зомби!</div>
+    <div class="tuneRow"><label>Скорость</label><button data-k="speed" data-d="-1">−</button><span id="tSpeed">5</span><button data-k="speed" data-d="1">+</button></div>
+    <div class="tuneRow"><label>Броня</label><button data-k="armor" data-d="-1">−</button><span id="tArmor">3</span><button data-k="armor" data-d="1">+</button></div>
+    <div class="tuneRow"><label>Размер колёс</label><button data-k="wheel" data-d="-1">−</button><span id="tWheel">1</span><button data-k="wheel" data-d="1">+</button></div>
+    <div class="tuneRow"><label>Туррель</label><button data-k="turret" data-d="-1">−</button><span id="tTurret">0</span><button data-k="turret" data-d="1">+</button></div>
+    <div class="tuneRow"><label>Цвет</label><button data-k="color" data-d="-1">◀</button><span id="tColor">1</span><button data-k="color" data-d="1">▶</button></div>
+    <button id="tuneClose">ГОТОВО</button>
+  </div>
+
+  <div id="shopMenu">
+    <h2>🏪 ТОРГОВЕЦ ВЫЖИВШИХ</h2>
+    <div style="text-align:center;color:#aaa;font-size:13px;margin-bottom:16px">💰 Деньги: <b id="shopMoney" style="color:#44ff44">0</b></div>
+    <div id="shopItems"></div>
+    <button id="shopClose">ЗАКРЫТЬ</button>
+  </div>
+
+  <div id="note"></div>
+</div>
+
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ================== НАСТРОЙКИ ==================
+const CFG = {
+  worldSize: 200,
+  fogNear: 40,
+  fogFar: 130,
+  maxZombies: 25,
+  zombieSpawnDist: 35,
+};
+
+// ================== СЦЕНА ==================
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x8fa8b8);
+scene.fog = new THREE.Fog(0x8fa8b8, CFG.fogNear, CFG.fogFar);
+
+const camera = new THREE.PerspectiveCamera(72, innerWidth/innerHeight, 0.1, 250);
+const renderer = new THREE.WebGLRenderer({ antialias:false, powerPreference:'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 1.25));
+renderer.setSize(innerWidth, innerHeight);
+renderer.shadowMap.enabled = false;
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.HemisphereLight(0xffffff, 0x334455, 1.0));
+const sun = new THREE.DirectionalLight(0xffffff, 0.55);
+sun.position.set(30, 60, 20);
+scene.add(sun);
+
+// ================== МИР ==================
+const ground = new THREE.Mesh(
+  new THREE.PlaneGeometry(CFG.worldSize*2, CFG.worldSize*2),
+  new THREE.MeshLambertMaterial({ color: 0x3f5a35 })
+);
+ground.rotation.x = -Math.PI/2;
+scene.add(ground);
+
+const roadMat = new THREE.MeshLambertMaterial({ color: 0x2a2a2a });
+const road1 = new THREE.Mesh(new THREE.PlaneGeometry(CFG.worldSize*2, 12), roadMat);
+road1.rotation.x = -Math.PI/2; road1.position.y = 0.01; scene.add(road1);
+const road2 = new THREE.Mesh(new THREE.PlaneGeometry(12, CFG.worldSize*2), roadMat);
+road2.rotation.x = -Math.PI/2; road2.position.y = 0.01; scene.add(road2);
+
+const buildings = [];
+const buildingColors = [0x8b7355, 0x6b6b7b, 0xa08060, 0x7a7a8a, 0x9b7f5f];
+for (let i = 0; i < 55; i++) {
+  const w = 5 + Math.random()*7;
+  const h = 6 + Math.random()*18;
+  const d = 5 + Math.random()*7;
+  const mat = new THREE.MeshLambertMaterial({ color: buildingColors[(Math.random()*buildingColors.length)|0] });
+  const b = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), mat);
+  let x, z;
+  do {
+    x = (Math.random()-0.5) * CFG.worldSize * 1.7;
+    z = (Math.random()-0.5) * CFG.worldSize * 1.7;
+  } while (Math.abs(x) < 15 || Math.abs(z) < 15);
+  b.position.set(x, h/2, z);
+  scene.add(b);
+  buildings.push({ mesh:b, box:new THREE.Box3().setFromObject(b) });
+}
+
+const treeTrunkMat = new THREE.MeshLambertMaterial({color:0x5b3a1f});
+const treeLeafMat = new THREE.MeshLambertMaterial({color:0x2d6a2a});
+for (let i = 0; i < 40; i++) {
+  const g = new THREE.Group();
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.3,0.4,2,5), treeTrunkMat);
+  trunk.position.y = 1;
+  g.add(trunk);
+  const leaf = new THREE.Mesh(new THREE.ConeGeometry(2, 4, 6), treeLeafMat);
+  leaf.position.y = 4;
+  g.add(leaf);
+  let x, z;
+  do {
+    x = (Math.random()-0.5) * CFG.worldSize * 1.7;
+    z = (Math.random()-0.5) * CFG.worldSize * 1.7;
+  } while (Math.abs(x) < 8 || Math.abs(z) < 8);
+  g.position.set(x, 0, z);
+  scene.add(g);
+}
+
+// ================== ОРУЖИЕ ==================
+const WEAPONS = [
+  { name:'Пистолет',   dmg:25,  rate:0.30, mag:12,  reload:1.2, spread:0.015, auto:false, color:0x222222, range:60 },
+  { name:'ПП',         dmg:18,  rate:0.09, mag:30,  reload:1.8, spread:0.035, auto:true,  color:0x333333, range:55 },
+  { name:'Дробовик',   dmg:70,  rate:0.85, mag:6,   reload:2.2, spread:0.09,  auto:false, color:0x552211, range:25,  pellets:6 },
+  { name:'Винтовка',   dmg:90,  rate:1.0,  mag:5,   reload:2.6, spread:0.005, auto:false, color:0x443322, range:120 },
+  { name:'АК-74',      dmg:32,  rate:0.11, mag:30,  reload:2.0, spread:0.025, auto:true,  color:0x553322, range:80 },
+  { name:'Миниган',    dmg:22,  rate:0.05, mag:200, reload:4.0, spread:0.06,  auto:true,  color:0x111111, range:65 },
+  { name:'Рельсотрон', dmg:250, rate:1.5,  mag:3,   reload:3.5, spread:0.001, auto:false, color:0x00aaff, range:200 }
+];
+let curWeapon = 0;
+let ammo = WEAPONS.map(w => w.mag);
+let reloading = false;
+let reloadEnd = 0;
+
+// ================== ИГРОК ==================
+const player = {
+  pos: new THREE.Vector3(0, 1.7, 5),
+  vel: new THREE.Vector3(),
+  yaw: 0,
+  pitch: 0,
+  onGround: true,
+  hp: 100,
+  speed: 4.5,
+  runSpeed: 7.5,
+  jump: 7,
+  gravity: 20,
+  inCar: false,
+  kills: 0,
+  money: 500,
+  unlockedWeapons: [0],
+  armorItems: 0
+};
+
+// viewModel (руки с оружием)
+const viewModel = new THREE.Group();
+scene.add(viewModel);
+
+function buildViewModel(weaponIdx) {
+  viewModel.clear();
+  const w = WEAPONS[weaponIdx];
+  const armMat = new THREE.MeshLambertMaterial({color:0xd8a878});
+  const arm = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.18, 0.5), armMat);
+  arm.position.set(0.32, -0.28, -0.55);
+  viewModel.add(arm);
+
+  const gunMat = new THREE.MeshLambertMaterial({color:w.color});
+  let gunLen = 0.6;
+  if (weaponIdx === 3) gunLen = 1.1;
+  if (weaponIdx === 2) gunLen = 0.9;
+  if (weaponIdx === 6) gunLen = 1.3;
+  const gun = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, gunLen), gunMat);
+  gun.position.set(0.32, -0.22, -0.85);
+  viewModel.add(gun);
+  const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.06,0.06,0.25), gunMat);
+  barrel.position.set(0.32, -0.22, -0.85 - gunLen/2 - 0.1);
+  viewModel.add(barrel);
+}
+buildViewModel(curWeapon);
+
+// ================== ТИПЫ ЗОМБИ ==================
+const ZOMBIE_TYPES = {
+  walker: { name:'Ходок', hp:50, speed:1.2, dmg:8, color:0x6a8a4a, scale:1.0, reward:25, icon:'🧟' },
+  runner: { name:'Бегун', hp:35, speed:3.2, dmg:12, color:0xc9a227, scale:0.9, reward:75, icon:'🏃' },
+  brute: { name:'Громила', hp:200, speed:0.9, dmg:25, color:0x8b3a3a, scale:1.5, reward:200, icon:'💪' },
+  spitter: { name:'Плевун', hp:80, speed:1.5, dmg:18, color:0x4aa87a, scale:1.0, reward:150, icon:'🤢', ranged:true, range:15, cd:2.5 },
+  tank: { name:'Танк', hp:800, speed:0.7, dmg:45, color:0x333333, scale:2.2, reward:800, icon:'👹', glow:0xff4400 },
+  mutant: { name:'Мутант', hp:400, speed:2.2, dmg:35, color:0xaa22cc, scale:1.7, reward:500, icon:'☣️', glow:0xaa22cc, regenerate:5 },
+  boss: { name:'КРОВАВЫЙ ЛОРД', hp:2500, speed:1.4, dmg:70, color:0x880000, scale:3.0, reward:5000, icon:'👑', glow:0xff0000, regenerate:15, ranged:true, range:20, cd:1.8 }
+};
+
+const SPAWN_WEIGHTS = { walker:55, runner:22, spitter:10, brute:7, mutant:3.5, tank:2, boss:0.5 };
+
+const zombies = [];
+
+function pickZombieType() {
+  let r = Math.random() * 100;
+  for (const [type, weight] of Object.entries(SPAWN_WEIGHTS)) {
+    r -= weight;
+    if (r <= 0) return type;
+  }
+  return 'walker';
+}
+
+function spawnZombie(nearPlayer = true, forceType = null) {
+  if (zombies.length >= CFG.maxZombies) return;
+  const typeKey = forceType || pickZombieType();
+  const T = ZOMBIE_TYPES[typeKey];
+  const g = new THREE.Group();
+  const mat = new THREE.MeshLambertMaterial({ color: T.color });
+  const s = T.scale;
+
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.6*s, 1.1*s, 0.35*s), mat);
+  body.position.y = 1.0*s; g.add(body);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.45*s, 0.45*s, 0.45*s), mat);
+  head.position.y = 1.85*s; g.add(head);
+
+  if (T.glow) {
+    const eyeMat = new THREE.MeshBasicMaterial({ color: T.glow });
+    const eye1 = new THREE.Mesh(new THREE.SphereGeometry(0.06*s, 6, 6), eyeMat);
+    eye1.position.set(-0.1*s, 1.9*s, 0.23*s); g.add(eye1);
+    const eye2 = eye1.clone(); eye2.position.x = 0.1*s; g.add(eye2);
+    const aura = new THREE.PointLight(T.glow, 0.8, 6);
+    aura.position.set(0, 1.2*s, 0); g.add(aura);
+  }
+
+  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.18*s, 0.8*s, 0.18*s), mat);
+  armL.position.set(-0.4*s, 1.2*s, -0.15*s);
+  armL.rotation.x = -0.5; g.add(armL);
+  const armR = armL.clone(); armR.position.x = 0.4*s; g.add(armR);
+
+  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.22*s, 0.85*s, 0.22*s), mat);
+  legL.position.set(-0.15*s, 0.42*s, 0); g.add(legL);
+  const legR = legL.clone(); legR.position.x = 0.15*s; g.add(legR);
+
+  let x, z;
+  if (nearPlayer) {
+    const a = Math.random() * Math.PI * 2;
+    const dist = CFG.zombieSpawnDist + Math.random() * 25;
+    x = player.pos.x + Math.cos(a) * dist;
+    z = player.pos.z + Math.sin(a) * dist;
+  } else {
+    x = (Math.random()-0.5) * CFG.worldSize * 1.6;
+    z = (Math.random()-0.5) * CFG.worldSize * 1.6;
+  }
+  x = Math.max(-CFG.worldSize, Math.min(CFG.worldSize, x));
+  z = Math.max(-CFG.worldSize, Math.min(CFG.worldSize, z));
+  g.position.set(x, 0, z);
+  scene.add(g);
+
+  zombies.push({
+    mesh:g, legs:[legL, legR], arms:[armL, armR],
+    type:typeKey, def:T, hp:T.hp, maxHp:T.hp, speed:T.speed,
+    atkCD:0, shootCD:T.cd||0, alive:true,
+    wobble: Math.random()*Math.PI*2
+  });
+}
+
+for (let i = 0; i < 12; i++) spawnZombie(false);
+
+// ================== МАШИНЫ ==================
+const cars = [];
+const carColors = [0xcc2222, 0x2266cc, 0xddaa22, 0x22aa55, 0xee22ee, 0xdddddd, 0x222222];
+
+function createCar(opts = {}) {
+  const g = new THREE.Group();
+  const colorIdx = opts.color ?? (Math.random()*carColors.length)|0;
+  const bodyMat = new THREE.MeshLambertMaterial({color:carColors[colorIdx]});
+
+  const body = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.7, 4.0), bodyMat);
+  body.position.y = 0.9;
+  g.add(body);
+
+  const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.65, 1.8),
+    new THREE.MeshLambertMaterial({color:0x222233}));
+  cabin.position.set(0, 1.55, -0.1);
+  g.add(cabin);
+
+  const wheelMat = new THREE.MeshLambertMaterial({color:0x111111});
+  const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.3, 8);
+  const wheels = [];
+  const positions = [[-0.95,0.42,1.3],[0.95,0.42,1.3],[-0.95,0.42,-1.3],[0.95,0.42,-1.3]];
+  positions.forEach(p => {
+    const w = new THREE.Mesh(wheelGeo, wheelMat);
+    w.rotation.z = Math.PI/2;
+    w.position.set(...p);
+    g.add(w);
+    wheels.push(w);
+  });
+
+  let turret = null;
+  if (opts.turret > 0) {
+    turret = new THREE.Mesh(new THREE.CylinderGeometry(0.25,0.25,0.4,8), wheelMat);
+    turret.position.set(0, 2.05, -0.1); g.add(turret);
+    const barrel = new THREE.Mesh(new THREE.BoxGeometry(0.1,0.1,0.9), wheelMat);
+    barrel.position.set(0, 2.1, -0.8); g.add(barrel);
+  }
+
+  const spikeMat = new THREE.MeshLambertMaterial({color:0x333333});
+  for (let i = 0; i < 6; i++) {
+    const sp = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.4, 4), spikeMat);
+    const side = i < 3 ? -1 : 1;
+    sp.position.set(side*1.05, 0.9, (i%3-1)*1.2);
+    sp.rotation.z = side * Math.PI/2;
+    g.add(sp);
+  }
+
+  const car = {
+    mesh:g, body, cabin, wheels, turret,
+    speed: 4 + (opts.speed ?? 5),
+    armor: opts.armor ?? 3,
+    wheelScale: 1 + ((opts.wheel ?? 1) - 1) * 0.15,
+    colorIdx,
+    vel: new THREE.Vector3(),
+    yaw: 0,
+    hp: 100,
+    driver: null,
+    tuning: opts
+  };
+  wheels.forEach(w => w.scale.setScalar(car.wheelScale));
+  return car;
+}
+
+function spawnCar(pos, opts={}) {
+  const car = createCar(opts);
+  car.mesh.position.copy(pos);
+  scene.add(car.mesh);
+  cars.push(car);
+  return car;
+}
+
+spawnCar(new THREE.Vector3(3, 0, 5), {speed:5, armor:3, wheel:1, turret:0, color:0});
+for (let i = 0; i < 5; i++) {
+  spawnCar(new THREE.Vector3((Math.random()-0.5)*100, 0, (Math.random()-0.5)*100));
+}
+
+// ================== МАГАЗИНЫ ВЫЖИВШИХ ==================
+const shops = [];
+
+function createShop(pos) {
+  const g = new THREE.Group();
+
+  const house = new THREE.Mesh(
+    new THREE.BoxGeometry(8, 5, 8),
+    new THREE.MeshLambertMaterial({ color: 0x8b6f47 })
+  );
+  house.position.y = 2.5; g.add(house);
+
+  const roof = new THREE.Mesh(
+    new THREE.ConeGeometry(6.5, 3, 4),
+    new THREE.MeshLambertMaterial({ color: 0x5b3a1f })
+  );
+  roof.position.y = 6.5;
+  roof.rotation.y = Math.PI/4; g.add(roof);
+
+  const door = new THREE.Mesh(
+    new THREE.BoxGeometry(1.5, 3, 0.2),
+    new THREE.MeshLambertMaterial({ color: 0x3a2615 })
+  );
+  door.position.set(0, 1.5, 4.05); g.add(door);
+
+  const sign = new THREE.Mesh(
+    new THREE.BoxGeometry(4, 1, 0.3),
+    new THREE.MeshBasicMaterial({ color: 0xffdd44 })
+  );
+  sign.position.set(0, 4.2, 4.1); g.add(sign);
+
+  const survivor = new THREE.Group();
+  const sMat = new THREE.MeshLambertMaterial({ color: 0x4a7a9a });
+  const sBody = new THREE.Mesh(new THREE.BoxGeometry(0.7,1.2,0.4), sMat);
+  sBody.position.y = 1.2; survivor.add(sBody);
+  const sHead = new THREE.Mesh(new THREE.BoxGeometry(0.5,0.5,0.5),
+    new THREE.MeshLambertMaterial({color:0xffcc99}));
+  sHead.position.y = 2.0; survivor.add(sHead);
+  survivor.position.set(0, 0, 5.5); g.add(survivor);
+
+  const safeRing = new THREE.Mesh(
+    new THREE.RingGeometry(9, 10, 24),
+    new THREE.MeshBasicMaterial({ color: 0x44ff88, side: THREE.DoubleSide, transparent:true, opacity:0.3 })
+  );
+  safeRing.rotation.x = -Math.PI/2;
+  safeRing.position.y = 0.05; g.add(safenull);
+
+  g.position.copy(pos);
+  scene.add(g);
+
+  shops.push({ mesh:g, pos:pos.clone(), safeRadius:9 });
+}
+
+createShop(new THREE.Vector3(60, 0, 60));
+createShop(new THREE.Vector3(-60, 0, 60));
+createShop(new THREE.Vector3(60, 0, -60));
+
+function keepZombiesOutOfShops(dt) {
+  for (const z of zombies) {
+    for (const s of shops) {
+      const dx = z.mesh.position.x - s.pos.x;
+      const dz = z.mesh.position.z - s.pos.z;
+      const d = Math.hypot(dx, dz);
+      if (d < s.safeRadius) {
+        const push = (s.safeRadius - d) * 2 * dt + 0.1;
+        z.mesh.position.x += (dx / (d || 1)) * push;
+        z.mesh.position.z += (dz / (d || 1)) * push;
+      }
+    }
+  }
+}
+
+// ================== УПРАВЛЕНИЕ ==================
+const keys = {};
+addEventListener('keydown', e => keys[e.code] = true);
+addEventListener('keyup',   e => keys[e.code] = false);
+
+const move = {x:0, y:0};
+const look = {x:0, y:0};
+
+function setupStick(el, out) {
+  const knob = el.querySelector('.knob');
+  const maxR = 45;
+  let id = null
